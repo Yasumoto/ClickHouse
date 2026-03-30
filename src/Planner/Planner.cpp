@@ -916,7 +916,8 @@ ALWAYS_INLINE void addMergeSortingStep(QueryPlan & query_plan,
         sort_description,
         settings[Setting::max_block_size],
         query_analysis_result.partial_sorting_limit,
-        settings[Setting::exact_rows_before_limit]);
+        settings[Setting::exact_rows_before_limit],
+        true);
     merging_sorted->setStepDescription(description);
     query_plan.addStep(std::move(merging_sorted));
 }

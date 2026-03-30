@@ -209,12 +209,14 @@ SortingStep::SortingStep(
     SortDescription prefix_description_,
     SortDescription result_description_,
     size_t max_block_size_,
-    UInt64 limit_)
+    UInt64 limit_,
+    bool apply_virtual_row_conversions_)
     : ITransformingStep(input_header, input_header, getTraits(limit_))
     , type(Type::FinishSorting)
     , prefix_description(std::move(prefix_description_))
     , result_description(std::move(result_description_))
     , limit(limit_)
+    , apply_virtual_row_conversions(apply_virtual_row_conversions_)
     , sort_settings(max_block_size_)
 {
 }
@@ -224,12 +226,14 @@ SortingStep::SortingStep(
     SortDescription sort_description_,
     size_t max_block_size_,
     UInt64 limit_,
-    bool always_read_till_end_)
+    bool always_read_till_end_,
+    bool apply_virtual_row_conversions_)
     : ITransformingStep(input_header, input_header, getTraits(limit_))
     , type(Type::MergingSorted)
     , result_description(std::move(sort_description_))
     , limit(limit_)
     , always_read_till_end(always_read_till_end_)
+    , apply_virtual_row_conversions(apply_virtual_row_conversions_)
     , sort_settings(max_block_size_)
 {
     sort_settings.max_block_size = max_block_size_;

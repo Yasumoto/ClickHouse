@@ -3193,7 +3193,8 @@ void InterpreterSelectQuery::executeOrderOptimized(QueryPlan & query_plan, Input
         input_sorting_info->sort_description_for_merging,
         output_order_descr,
         settings[Setting::max_block_size],
-        limit);
+        limit,
+        /* apply_virtual_row_conversions_ */ true);
 
     query_plan.addStep(std::move(finish_sorting_step));
 }
@@ -3239,7 +3240,7 @@ void InterpreterSelectQuery::executeMergeSorted(QueryPlan & query_plan, const st
     const auto exact_rows_before_limit = context->getSettingsRef()[Setting::exact_rows_before_limit];
 
     auto merging_sorted = std::make_unique<SortingStep>(
-        query_plan.getCurrentHeader(), std::move(sort_description), max_block_size, limit, exact_rows_before_limit);
+        query_plan.getCurrentHeader(), std::move(sort_description), max_block_size, limit, exact_rows_before_limit, /* apply_virtual_row_conversions_ */ true);
     merging_sorted->setStepDescription(fmt::format("Merge sorted streams {}", description), options.max_step_description_length);
     query_plan.addStep(std::move(merging_sorted));
 }

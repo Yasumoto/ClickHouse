@@ -1468,7 +1468,8 @@ void optimizeReadInOrder(QueryPlan::Node & node, QueryPlan::Nodes & nodes, const
                     child->step->getOutputHeader(),
                     descr,
                     limit, /// TODO: support limit with ties
-                    sorting->getSettings());
+                    sorting->getSettings(),
+                    /* apply_virtual_row_conversions_ */ false);
             }
             else if (info->sort_description_for_merging.size() < max_sort_descr->size())
             {
@@ -1477,7 +1478,8 @@ void optimizeReadInOrder(QueryPlan::Node & node, QueryPlan::Nodes & nodes, const
                     info->sort_description_for_merging,
                     *max_sort_descr,
                     sorting->getSettings().max_block_size,
-                    0); /// TODO: support limit with ties
+                    0, /// TODO: support limit with ties
+                    /* apply_virtual_row_conversions_ */ false);
             }
 
             if (additional_sorting)
