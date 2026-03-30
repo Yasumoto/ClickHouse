@@ -2358,3 +2358,88 @@ def test_comparison_operators():
             ["[('__name__','bar'),('shape','triangle')]", "[('1970-01-01 00:01:50.000',8),('1970-01-01 00:02:00.000',8),('1970-01-01 00:02:10.000',8),('1970-01-01 00:02:20.000',8),('1970-01-01 00:02:30.000',30)]"],
         ],
     )
+
+
+def test_aggregation_operators():
+    # Test data for aggregation:
+    # At timestamp 131, the visible `foo` series (using 5m lookback) are:
+    #   foo{shape="square", size="s"}    = 4   (from t=110)
+    #   foo{shape="triangle", size="m"}  = 80  (from t=120)
+    #   foo{shape="circle", size="l"}    = 16  (from t=110)
+    # Total = 100, Count = 3, Avg = 33.333..., Min = 4, Max = 80
+
+    # sum(foo): aggregates all foo series into one, drops all labels.
+    do_query_test(
+        "sum(foo)",
+        131,
+        '{"resultType": "vector", "result": [{"metric": {}, "value": [131, "100"]}]}',
+        [["[]", "1970-01-01 00:02:11.000", "100"]],
+    )
+
+    # count(foo): counts the number of foo series with a value.
+    do_query_test(
+        "count(foo)",
+        131,
+        '{"resultType": "vector", "result": [{"metric": {}, "value": [131, "3"]}]}',
+        [["[]", "1970-01-01 00:02:11.000", "3"]],
+    )
+
+    # min(foo): minimum value across all foo series.
+    do_query_test(
+        "min(foo)",
+        131,
+        '{"resultType": "vector", "result": [{"metric": {}, "value": [131, "4"]}]}',
+        [["[]", "1970-01-01 00:02:11.000", "4"]],
+    )
+
+    # max(foo): maximum value across all foo series.
+    do_query_test(
+        "max(foo)",
+        131,
+        '{"resultType": "vector", "result": [{"metric": {}, "value": [131, "80"]}]}',
+        [["[]", "1970-01-01 00:02:11.000", "80"]],
+    )
+
+
+def test_aggregation_by_clause():
+    # sum by(size) (foo) at timestamp 131:
+    #   size="s": foo{shape="square", size="s"}    = 4
+    #   size="m": foo{shape="triangle", size="m"}  = 80
+    #   size="l": foo{shape="circle", size="l"}    = 16
+    do_query_test(
+        "sum by(size) (foo)",
+        131,
+        '{"resultType": "vector", "result": [{"metric": {"size": "l"}, "value": [131, "16"]}, {"metric": {"size": "m"}, "value": [131, "80"]}, {"metric": {"size": "s"}, "value": [131, "4"]}]}',
+        [
+            ["[('size','l')]", "1970-01-01 00:02:11.000", "16"],
+            ["[('size','m')]", "1970-01-01 00:02:11.000", "80"],
+            ["[('size','s')]", "1970-01-01 00:02:11.000", "4"],
+        ],
+    )
+
+
+def test_aggregation_without_clause():
+    # sum without(shape) (foo) at timestamp 131 groups by size (removing shape and __name__):
+    #   size="s": 4, size="m": 80, size="l": 16
+    do_query_test(
+        "sum without(shape) (foo)",
+        131,
+        '{"resultType": "vector", "result": [{"metric": {"size": "l"}, "value": [131, "16"]}, {"metric": {"size": "m"}, "value": [131, "80"]}, {"metric": {"size": "s"}, "value": [131, "4"]}]}',
+        [
+            ["[('size','l')]", "1970-01-01 00:02:11.000", "16"],
+            ["[('size','m')]", "1970-01-01 00:02:11.000", "80"],
+            ["[('size','s')]", "1970-01-01 00:02:11.000", "4"],
+        ],
+    )
+
+
+def test_aggregation_nested():
+    # max(sum by(size) (foo)) at timestamp 131:
+    # Inner: size="s"->4, size="m"->80, size="l"->16
+    # Outer: max of {4, 80, 16} = 80
+    do_query_test(
+        "max(sum by(size) (foo))",
+        131,
+        '{"resultType": "vector", "result": [{"metric": {}, "value": [131, "80"]}]}',
+        [["[]", "1970-01-01 00:02:11.000", "80"]],
+    )

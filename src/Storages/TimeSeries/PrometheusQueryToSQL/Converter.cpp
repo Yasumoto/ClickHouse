@@ -2,6 +2,7 @@
 
 #include <Storages/TimeSeries/PrometheusQueryToSQL/ConverterContext.h>
 #include <Storages/TimeSeries/PrometheusQueryToSQL/SQLQueryPiece.h>
+#include <Storages/TimeSeries/PrometheusQueryToSQL/applyAggregationOperator.h>
 #include <Storages/TimeSeries/PrometheusQueryToSQL/applyBinaryOperator.h>
 #include <Storages/TimeSeries/PrometheusQueryToSQL/applyFunction.h>
 #include <Storages/TimeSeries/PrometheusQueryToSQL/applyOffset.h>
@@ -91,6 +92,17 @@ namespace
                 SQLQueryPiece left_argument = visitNode(binary_operator->getLeftArgument(), context);
                 SQLQueryPiece right_argument = visitNode(binary_operator->getRightArgument(), context);
                 return applyBinaryOperator(binary_operator, std::move(left_argument), std::move(right_argument), context);
+            }
+
+            case NodeType::AggregationOperator:
+            {
+                const auto * agg_op = static_cast<const PQT::AggregationOperator *>(node);
+                std::vector<SQLQueryPiece> arguments;
+                for (const auto * arg_node : agg_op->getArguments())
+                {
+                    arguments.push_back(visitNode(arg_node, context));
+                }
+                return applyAggregationOperator(agg_op, std::move(arguments), context);
             }
 
             default:
